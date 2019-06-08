@@ -13,13 +13,6 @@ from selenium.webdriver.support import expected_conditions as EC
 # above are reffered to as video meta-data
 
 
-def loadChannels():
-    '''
-    returns a list of all the channels in the channels.csv file
-    '''
-    with open("channels.csv") as channelFile:
-        return channelFile.read().split(',')
-
 def getClipPage(name):
     '''
     name: string, twitch username of a creator 
@@ -73,12 +66,23 @@ def getMetaData(xPath, driver, name):
     
 # head of clip tree vvv
 
-
-
-def getVideosMetaData(driver, creatorName):
+def isCorrectGame(driver, correctGame, xPath):
+    '''
+    driver: a webdriver object
+    correctGame: a string representing the game which you want to download
+    used to avoid downloading clips from games that are not what we want
+    returns True if the game matches, False otherwise
+    Or None if the game cannot be found
+    '''
+    try: 
+        return correctGame == WebDriverWait(driver, 7).until(EC.presence_of_element_located((By.XPATH, xPath +'/div/div[2]/div[1]/div/a/div/div/img'))).get_attribute('alt')
+    except:
+        return
+def getVideosMetaData(driver, creatorName, gameName):
     '''
     driver: a webdriver object
     creatorName: string, the channel name to get clips from
+    gameName: string, the game to get clips from
     returns: a list of tuples containing the metadata for each video on the clips page
     format: (link, title, length, views, days, name of channel)
     '''
@@ -88,18 +92,22 @@ def getVideosMetaData(driver, creatorName):
     temp = ()
 
     while (temp != None):
-        temp = getMetaData('//*[@id="root"]/div/div[2]/div/main/div[2]/div[3]/div/div/div/div/div[2]/div/div/div[1]/div/div/div/div['+ str(i) +']', driver, creatorName) 
+        currXPath = '//*[@id="root"]/div/div[2]/div/main/div[2]/div[3]/div/div/div/div/div[2]/div/div/div[1]/div/div/div/div['+ str(i) +']'
+                    
+        temp = getMetaData(currXPath, driver, creatorName) 
         if (temp != None):
-            dataList.append(temp)
-            i += 1
+            if isCorrectGame(driver, gameName, currXPath):
+                dataList.append(temp)
+        i += 1
     return dataList
 
 
 
 
 if __name__ == "__main__":
-    # CREATORLIST = loadChannels()
-    # driver = webdriver.Chrome()   
-    # print(getVideosMetaData(driver, CREATORLIST[1]))
-    # driver.close()
-    print(getSeconds("1:30"))
+    
+    driver = webdriver.Chrome()
+    print(getVideosMetaData(driver, 'leffen', 'Super Smash Bros. Melee'))
+    
+    
+    driver.close()
