@@ -2,17 +2,7 @@ from sortParseDown import getAllVids
 import os
 import subprocess
 
-#for windows this is the case, for *nix machines switch this out to /
-PATHSEPERATOR = '\\'
-#for windows this is the case, for *nix machines switch this out to \
-ESCAPECHARACTER = '^'
-
-def escapeWhiteSpace(unsanitizedStr):
-    '''
-    unsanitizedStr: string, a string that could have whitespaces
-    returns: string, the same string but with '\' before each whitesapce
-    '''
-    return unsanitizedStr.replace(' ', ESCAPECHARACTER + ' ')
+#This is for windows, if you are on *nix, change to '/'
 
 def clearAssets():
     '''
@@ -23,20 +13,46 @@ def clearAssets():
     for file in os.listdir(assets):
         path = os.path.join(assets, file)
         try:
-            if os.path.isfile(path) and (path[-4:] == '.mp4' or path[-4:] == '.sub' or path[-4:] == '.ass'):
+            if os.path.isfile(path) and (path[-4:] == '.mp4' or path[-4:] == '.txt' or path[-4:] == '.ass'):
                 os.unlink(path)
         except Exception as e:
             print(e)
     
 
-def joinVideos(vid1, vid2, finalName):
+def joinVideos(vidList, finalName):
     '''
     vid1: string, name of first video
     vid2: string, name of second video
     finalName: string, name of final video
     (Note: names do not include directories or file extentions)
+    (Note 2: before joining videos, videos must be remuxed so all of their codecs are the same)
+    ffmpeg -y -f concat -i tempList.txt -c copy <finalVideo>
     '''
-    pass
+    with open('assets/tempList.txt', 'w') as listFile:
+        for i in vidList: #assets/
+            listFile.write("file '"+ i + ".mp4'\n") 
+
+    os.system('ffmpeg -y -f concat -safe 0 -i assets/tempList.txt -c copy "finalVids/' +finalName +'.mp4"')
+    return finalName
+
+def remuxVids(vidList):
+    '''
+    vidList: list<str>, list of video names to remux
+    returns: list<str>, list of final video names
+    ffmpeg -y -i <vidName> -c:v h264 -c:a aac <finalName>
+    (Note: final names are just original filenames with _fin appended)
+    '''
+    finalList = []
+    for fileName in vidList:
+        tempFinal = fileName + '_fin'
+        os.system('ffmpeg -y -i "assets/' + fileName + '.mp4" -c:v h264 -c:a aac  "assets/' + tempFinal + '.mp4"')
+        finalList.append(tempFinal)
+
+    return finalList
+
+
+
+
 
 
 def makeSubtitle(fileName):
@@ -47,7 +63,7 @@ def makeSubtitle(fileName):
     the returning fileName will be the same as the original, except whitespaces will be replaced with underscores
     (makes a ~2 second subtitle of the title of the clip)
     '''
-    COLOURCODE = 'ffffff'
+    COLOURCODE = '000000'
     FONTSIZE = '36'
     FONT = 'Arial'
     title = fileName.split('_')[0]
@@ -71,27 +87,27 @@ def applySubtitle(fileName, subName):
     fileName: string, the name of a file apply the subtitles to
     returns: string, the name of the new .mp4 file with subtitles burned in
     (Note: this filename is the same as the given filename but with _sub at the end)
+    ffmpeg/ffmpeg.exe -i <name> -vf "ass=<subName>" <outputName>
     '''
     
-    #I CANT GET THIS TO RUN PROPERLY, THIS WILL BE THE STRAW THAT BROKE MY BACK, AND SENT ME INTO A MURDEROUS RAMPAGE
-
-    #ffmpeg/ffmpeg.exe -i <name> -vf "ass=<subName>" <outputName>
     newFile = fileName + '_sub'
     print(fileName)
-    #'ffmpeg'+ PATHSEPERATOR+'ffmpeg.exe -i assets'+ PATHSEPERATOR + fileName +'.mp4" -vf "ass=assets' + PATHSEPERATOR + subName + '.ass" assets' + PATHSEPERATOR + escapeWhiteSpace(newFile)+'.mp4 -y'
-    subprocess.Popen(['ffmpeg/ffmpeg.exe',  '-i',  '"assets'+fileName+'.mp4"', '-vf',  '"ass=assets/' + subName+ '.ass"',  '"assets/'+newFile+ '.mp4"',  '-y'], shell=False)
-
+    #'ffmpeg -i assets'+ PATHSEPERATOR + fileName +'.mp4" -vf "ass=assets' + PATHSEPERATOR + subName + '.ass" assets' + PATHSEPERATOR + escapeWhiteSpace(newFile)+'.mp4 -y'
+    #'+ subName + '.ass
+    os.system('ffmpeg -i "assets/'+ fileName + '.mp4" -vf "ass=assets/'+ subName + '.ass" "assets/'+newFile+'.mp4" -y')
     return newFile
 
 
-
-
-
-
-
 if __name__ == "__main__":
-    file = '3 hard knees into SACRED_wizzrobe_26_976_3-days-ago'
-    subFile = makeSubtitle(file)
-    print(applySubtitle(file, subFile))
+    #vidList = ['BIG SCHLICE_mang0_26_3000_2-days-ago', 'Alex19 thinks Grand Finals is Fake News_mach1alex19_30_415_5-days-ago', "alex19s view on ludwig_mach1alex19_38_196_4-days-ago"]
+    fileName = 'BIG SCHLICE_mang0_26_3000_2-days-ago'
+    #subName = makeSubtitle(fileName)
+    applySubtitle(fileName, 'BIG SCHLICE')
+    
+    
+    # vidList = ['test1', 'test2', "test3"]
+    #print(remuxVids(vidList))
+    #print(joinVideos(vidList, 'yeet'))
+    
 
 

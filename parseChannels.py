@@ -22,13 +22,21 @@ def getClipPage(name):
 
 def sanitizeViews(viewString):
     '''
-    viewString: string, contains the raw viewString
+    viewString: string, contains the raw view count
     returns: an integer containing an approx to views
     '''
     viewPart = viewString.split()[0].replace('.', '')
     if viewPart[-1] == 'K':
         viewPart = viewPart[:-1] + '000'
     return int(viewPart)
+
+def sanitizeTitle(titleString):
+    '''
+    titleString: string, contains the raw title
+    returns: string, same as given titles, but with the characters:
+    '"\/|     all removed
+    '''
+    return titleString.replace('\'', '').replace('"', '').replace('\\', '').replace('/', '').replace('|', '')
 
 def getSeconds(lengthString):
     '''
@@ -53,12 +61,13 @@ def getMetaData(xPath, driver, name):
     '''
     try:
         link = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.XPATH, xPath+'/div/div/a'))).get_attribute('href')
-        title = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.XPATH, xPath+'/div/div[2]/div[2]/div/a/h3'))).text
+        titleString = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.XPATH, xPath+'/div/div[2]/div[2]/div/a/h3'))).text
         lengthString = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.XPATH, xPath+'/div/div[1]/a/div[2]/div[1]/div/p'))).text
         viewString = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.XPATH, xPath+'/div/div[1]/a/div[2]/div[3]/div/p'))).text
         dayString = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.XPATH, xPath+'/div/div[1]/a/div[2]/div[4]/div/p'))).text
     except:
         return
+    title = sanitizeTitle(titleString)
     views = sanitizeViews(viewString)
     days = '-'.join(dayString.split())
     length = getSeconds(lengthString)
