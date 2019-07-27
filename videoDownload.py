@@ -23,9 +23,13 @@ def downloadFile(url, fileName):
     url: string, link to file to download
     fileName: string, name of file downloaded
     '''
-    with open(fileName, "wb") as fOut:
-        response = requests.get(url)
-        fOut.write(response.content)
+    try:
+        with open(fileName, "wb") as fOut:
+                response = requests.get(url)
+                fOut.write(response.content)
+    except:
+        return
+
 
 def videoDownload(url, fileName, driver):
     '''
@@ -45,9 +49,7 @@ def videoDownload(url, fileName, driver):
     
 
 
-if __name__ == "__main__":
-    driver = webdriver.Chrome()
+if __name__ == "__main__":      
+    driver = webdriver.Chrome('')
     videoDownload("https://www.twitch.tv/ppmd/clip/DignifiedFineNeanderthalTakeNRG?filter=clips&range=7d&sort=time", "test", driver)
-    
-
 
