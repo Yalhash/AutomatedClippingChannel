@@ -1,90 +1,88 @@
 from selenium import webdriver
-from parseChannels import getVideosMetaData
+from selenium.webdriver.chrome.options import Options
+from parseChannels import get_videos_meta_data
 from videoDownload import videoDownload
 
-
-
-
-#Goal is to get 10:00 worth of content sorted by number of views
-#also try to avoid repeats -> avoid clips from the same stream
-
-def loadGame():
+def load_channels(csv_file):
     '''
-    returns a string of the game we want to download from the game.txt file
+    returns a list of all the channels in the given csv file
     '''
-    with open("game.txt") as gameFile:  
-        return gameFile.read()
+    channels = []
+    with open(csv_file, 'r', encoding='UTF-8') as channel_file:
+        for line in channel_file.readlines():
+            channels.extend(list(map(lambda x: x.strip(), line.split(','))))
 
-def loadChannels():
-    '''
-    returns a list of all the channels in the channels.csv file
-    '''
-    with open("channels.csv") as channelFile:
-        return channelFile.read().split(',')
+    return channels
 
 
-
-def differentStream(metaList, metaTuple):
+def is_unique_stream(candidate, final_list):
     '''
-    metaList: a list of metadata tuples
-    metaTuple: an instance of metadata
-    the function returns False if the channel name and date of the clip are equal,
-    and True if they are not, 
+    candidate: a candidate for being included in video output
+    final_list: a list of metadata objects
+    The function returns true if the candidate is not from the same day and same channel
     used to avoid downloading the same clip under a different name
     '''
-    for i in metaList:
-        if i[4] == metaTuple[4] and i[5] == metaTuple[5]:
+    for metadata in final_list:
+        if metadata.channel_name == candidate.channel_name \
+            and metadata.time_passed == candidate.time_passed:
             return False
-    
     return True
 
-
-
-
-def getAllVids():
+def get_best_videos(metadata_list):
     '''
-    downloads 10 minutes worth of content, or until content runs out
-    into the assets folder
-    returns: a list of strings designating the filenames of each downloaded file, 
-    sorted from most to least views
+        metadata_list: list of all the metadata objects collects
+        returns: list of metadata objects
+        Gets at least ten minutes of video if the total length of the collected videos permits
+        This should be the final list of videos to download
+    '''
+    # Sort by views to get the best vids first
+    metadata_sorted = sorted(metadata_list, key=lambda t: t.views, reverse=True)
+
+    ten_mins = 600
+    total_time = 0
+
+    index = 0
+    final_list = []
+    while total_time <= ten_mins and index < len(metadata_sorted):
+        if is_unique_stream(metadata_sorted[index], final_list):
+            final_list.append(metadata_sorted[index])
+            total_time += metadata_sorted[index].length
+
+    return final_list
+
+def get_all_vids():
+    '''
+    gets all the links to video files
+    returns: a list of video objects 
     '''
     #get all of the metadata
-    driver = webdriver.Chrome()   
-    ChannelList = loadChannels()
-    gameName = loadGame()
-    allMetaData = []
+    ops = Options()
+    # ops.add_argument("--headless")
+    ops.add_argument("start-maximized")
+    driver = webdriver.Chrome(options=ops)
 
 
+    # Default csv is here, probably no need to change it
+    channel_list = load_channels("channels.csv")
+    all_meta_data = []
+    print("Loading Metadata from:")
+    for channel in channel_list:
+        print("\t" + channel)
+        all_meta_data.extend(get_videos_meta_data(driver, channel))
+    # Make sure that we've found the video metadata
+    # Twitch changes often which causes failures
+    assert len(all_meta_data) != 0
 
-    for channel in ChannelList:
-        allMetaData.extend(getVideosMetaData(driver, channel, gameName))
+    final_list = get_best_videos(all_meta_data)
+    # Create the new file names and download them
+    known_files = set()
+    for meta_data in all_meta_data:
+        file_name = meta_data.title + '_' + meta_data.channel_name + '_' \
+            + str(meta_data.length) + '_' + str(meta_data.views) + '_'+ meta_data.time_passed
+        meta_data.file_name = videoDownload(meta_data.link, file_name, driver, known_files)
 
-    #sort by views
-    allMetaData.sort(key=lambda t: t[3], reverse=True)
-
-    # take up to ten minutes of content
-    # i.e the first x videos that add to 10 minutes 
-    # or until content runs out
-    TENMINS = 600
-    totalTime = 0
-    index = 0
-    downloadList = []
-    while(totalTime <= TENMINS and index < len(allMetaData)):
-        if differentStream(downloadList, allMetaData[index]):
-            downloadList.append(allMetaData[index])
-            totalTime += allMetaData[index][2]
-        index += 1
-    fileList = []
-    for i in range(len(downloadList)):
-        
-        fName = downloadList[i][1] + '_' + downloadList[i][5] + '_'+str(downloadList[i][2]) + '_'+str(downloadList[i][3]) + '_'+downloadList[i][4] 
-        fileList.append(fName)
-        videoDownload(downloadList[i][0], fName, driver)
-    
-    driver.close()  
-    return fileList
-
+    driver.close()
+    return final_list
 
 if __name__ == "__main__":
-    getAllVids()
-  
+    get_all_vids()
