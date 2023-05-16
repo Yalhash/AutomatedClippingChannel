@@ -1,5 +1,7 @@
 A bot that scrapes Twitch.tv to download and edit clips from designated channels. It uses Selenium, and the chrome web driver (but any webdriver could theoretically be used) to download the clips, and ffmpeg to compile them into a video 10 minutes long. It will not download repeated clips, and downloads the most popular out of the channels given in the channels.csv provided. It also will only download content from the game specified in the game.txt file
 
+requires FFMPEG to be on PATH
+
 
 TODO:
 - Need to create a full test suite
