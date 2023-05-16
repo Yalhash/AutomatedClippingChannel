@@ -1,4 +1,5 @@
 import unittest
+from random import shuffle
 import sortParseDown
 from parseChannels import MetaData
 
@@ -21,8 +22,9 @@ class SPDTest(unittest.TestCase):
             Tests is_unique_stream
         '''
         def create_simple_metadata(channel, time_passed):
-            return MetaData("link", "title", "length", 0, time_passed, channel)
-        mdata_list = [create_simple_metadata("channel" + str(i), str(i) + " days ago") for i in range(1, 4)]
+            return MetaData("link", "title", 0, 0, time_passed, channel)
+        mdata_list = [create_simple_metadata("channel" + str(i), str(i) + " days ago")
+            for i in range(1, 4)]
 
         self.assertTrue(sortParseDown.is_unique_stream(
             create_simple_metadata("channel1", "2 days ago"),
@@ -38,11 +40,28 @@ class SPDTest(unittest.TestCase):
         ))
 
 
-    # def test_get_best_videos(self):
-    #     '''
-    #         Tests is_unique_stream
-    #     '''
-    #     pass
+    def test_get_best_videos(self):
+        '''
+            Tests is_unique_stream
+        '''
+        def create_simple_metadata(length, views, channel):
+            return MetaData("link", "title", length, views, "time passed", channel)
+
+        # get_best_videos should be able to arrange regardless of shuffle
+        # creating metadata's with lengths from 1 min to 10 mins,
+        # with the most popular being the shortest
+        # should take 1, 2, 3, 4 and none others
+        mdata_list = [create_simple_metadata(60*i, 20-i, "channel" + str(i)) for i in range(1, 11)]
+        shuffle(mdata_list)
+        final_list = sortParseDown.get_best_videos(mdata_list)
+
+        for i in range(1, 6):
+            self.assertIn(create_simple_metadata(60*i, 20-i, "channel" + str(i)), final_list)
+
+        for i in range(6, 11):
+            self.assertNotIn(create_simple_metadata(60*i, 20-i, "channel" + str(i)), final_list)
+
+
 
 if __name__ == '__main__':
     unittest.main()

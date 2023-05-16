@@ -31,6 +31,14 @@ class MetaData:
     def __str__(self):
         return self.channel_name + ":" + self.title
 
+    def __eq__(self, other):
+        return self.link == other.link and \
+            self.title == other.title and \
+            self.length == other.length and \
+            self.views == other.views and \
+            self.time_passed == other.time_passed and \
+            self.channel_name == other.channel_name
+
 def sanitize_time_passed(time_passed_string):
     '''
     For now just joining the parts 
@@ -90,7 +98,7 @@ def get_meta_data(clip_selector, driver, name):
             'a[data-a-target="preview-card-image-link"]'
         ).get_attribute("href")
         stats = list(map(
-                lambda x: x.text, 
+                lambda x: x.text,
                 article.find_elements_by_class_name("tw-media-card-stat")
             )
         )

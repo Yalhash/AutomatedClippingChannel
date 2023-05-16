@@ -32,7 +32,7 @@ def get_best_videos(metadata_list):
     '''
         metadata_list: list of all the metadata objects collects
         returns: list of metadata objects
-        Gets at least ten minutes of video if the total length of the collected videos permits
+        Gets 10+ minutes of video if the total length of the collected videos permits
         This should be the final list of videos to download
     '''
     # Sort by views to get the best vids first
@@ -47,6 +47,7 @@ def get_best_videos(metadata_list):
         if is_unique_stream(metadata_sorted[index], final_list):
             final_list.append(metadata_sorted[index])
             total_time += metadata_sorted[index].length
+        index += 1
 
     return final_list
 
@@ -69,6 +70,7 @@ def get_all_vids():
     for channel in channel_list:
         print("\t" + channel)
         all_meta_data.extend(get_videos_meta_data(driver, channel))
+
     # Make sure that we've found the video metadata
     # Twitch changes often which causes failures
     assert len(all_meta_data) != 0
